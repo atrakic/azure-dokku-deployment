@@ -1,0 +1,27 @@
+name: 'deploy'
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_remote_url:
+        description: 'Remote git url'
+        required: true
+        default: 'ssh://dokku@dokku-foo.northeurope.cloudapp.azure.com:22/appname'
+        options:
+          dev:
+            - 'dev'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Cloning repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to dokku
+        uses: dokku/github-action@master
+        with:
+          git_remote_url: ${{ github.event.inputs.environment }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
