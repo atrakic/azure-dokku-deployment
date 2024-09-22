@@ -1,0 +1,7 @@
+services:
+  shebang:
+    build: .
+    container_name: shebang
+    image: shebang
+    ports:
+      - "8080:8080"
