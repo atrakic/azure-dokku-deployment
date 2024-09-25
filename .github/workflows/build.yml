@@ -1,6 +1,7 @@
 name: 'build'
 
 on:
+  workflow_dispatch: # Manually run the workflow from the Actions tab
   push:
     branches:
       - main
