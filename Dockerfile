@@ -2,8 +2,9 @@
 # syntax = docker/dockerfile:1.4.0
 
 ## Orig from: https://gist.github.com/adtac/595b5823ef73b329167b815757bbce9f
+## https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md
 
-FROM node:20 AS build-env
+FROM node:slim AS build-env
 WORKDIR /root
 RUN npm install sqlite3
 
@@ -15,17 +16,15 @@ RUN <<EOF cat >/root/schema.sql
 EOF
 
 RUN <<EOF cat >/root/server.js
+  const port = 8080;
   const fs = require("fs");
   const http = require("http");
   const sqlite3 = require("sqlite3");
   const db = new sqlite3.Database(":memory:");
-
   db.run(fs.readFileSync("/app/schema.sql", "utf8"));
-
   const html = fs.readFileSync("/app/index.html", "utf8");
   const server = http.createServer((req, res) => {
     db.run("INSERT INTO clicks(time) VALUES(unixepoch())");
-
     const data = [];
     db.each(
       "SELECT time as t, COUNT(*) as n FROM clicks WHERE t > unixepoch()-4*60*60 GROUP BY t-t%60",
@@ -36,8 +35,7 @@ RUN <<EOF cat >/root/server.js
       },
     );
   });
-
-  server.listen(8080, "", () => console.log("serving :8080..."));
+  server.listen(port, () => console.log("Listening on port ${port}..."));
 EOF
 
 RUN <<EOF cat >/root/index.html
@@ -93,6 +91,7 @@ EOF
 ## Final image
 FROM gcr.io/distroless/nodejs20-debian12 AS final
 COPY --from=build-env --chown=nonroot:nonroot /root /app
+ENV NODE_ENV=production
 WORKDIR /app
 EXPOSE 8080
 CMD ["server.js"]
