@@ -63,7 +63,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           echo ${{ env.IMAGE_TAG }} > VERSION
           git add .
-          git commit -m "[skip ci] Add version: ${{ env.TAG }}"
+          git commit -m "[skip ci] Add version: ${{ env.IMAGE_TAG }}"
 
       - name: Push changes
         uses: ad-m/github-push-action@master
