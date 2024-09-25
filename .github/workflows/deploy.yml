@@ -8,10 +8,6 @@ on:
         required: true
         default: 'ssh://dokku@dokku-foo.northeurope.cloudapp.azure.com:22/appname'
 
-permissions:
-  contents: read
-  packages: write
-
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/shebang
