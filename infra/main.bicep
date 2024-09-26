@@ -1,12 +1,11 @@
 @description('User name for the Virtual Machine.')
-param adminUsername string
-default dokku
+param adminUsername string = 'dokku'
 
 @description('The SSH public key data for the administrator account as a string.')
 param sshKeyData string
 
-@description('DNS Label for the Public IP. Must be lowercase. It should match with the following regular expression: ^[a-z][a-z0-9-]{1,61}[a-z0-9]$ or it will raise an error.')
-param dnsLabelPrefix string
+@description('Unique DNS Name for the Public IP used to access the Virtual Machine.')
+param dnsNameForPublicIP string
 
 @description('The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version. Allowed values: 20_04-lts-gen2.')
 @allowed([
@@ -28,8 +27,9 @@ param vmSize string = 'Standard_D2S_V3'
 ])
 param storageAccountType string = 'StandardSSD_LRS'
 
+// https://github.com/Azure/azure-quickstart-templates/blob/master/1-CONTRIBUTION-GUIDE/best-practices.md#deployment-artifacts-nested-templates-scripts
 @description('The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated.')
-param _artifactsLocation string = deployment().properties.templateLink.uri
+param _artifactsLocation string = 'https://raw.githubusercontent.com/atrakic/azure-dokku-deployment/refs/heads/main/infra/main.bicep' //deployment().properties.templateLink.uri
 
 @description('The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated.')
 @secure()
@@ -63,18 +63,18 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   }
 }
 
-resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2022-05-01' = {
+resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2023-09-01' = {
   name: publicIPAddressName
   location: location
   properties: {
     publicIPAllocationMethod: publicIPAddressType
     dnsSettings: {
-      domainNameLabel: dnsLabelPrefix
+      domainNameLabel: dnsNameForPublicIP
     }
   }
 }
 
-resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-05-01' = {
+resource virtualNetwork 'Microsoft.Network/virtualNetworks@2023-09-01' = {
   name: virtualNetworkName
   location: location
   properties: {
@@ -94,7 +94,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-05-01' = {
   }
 }
 
-resource nic 'Microsoft.Network/networkInterfaces@2022-05-01' = {
+resource nic 'Microsoft.Network/networkInterfaces@2023-09-01' = {
   name: nicName
   location: location
   properties: {
@@ -118,7 +118,7 @@ resource nic 'Microsoft.Network/networkInterfaces@2022-05-01' = {
   ]
 }
 
-resource vm 'Microsoft.Compute/virtualMachines@2022-08-01' = {
+resource vm 'Microsoft.Compute/virtualMachines@2023-09-01' = {
   name: vmName
   location: location
   properties: {
@@ -148,6 +148,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2022-08-01' = {
         version: 'latest'
       }
       osDisk: {
+        caching: 'ReadWrite'
         createOption: 'FromImage'
         managedDisk: {
           storageAccountType: storageAccountType
@@ -170,7 +171,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2022-08-01' = {
   }
 }
 
-resource initDokku 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
+resource initDokku 'Microsoft.Compute/virtualMachines/extensions@2023-09-01' = {
   parent: vm
   name: 'initdokku'
   location: location
@@ -187,3 +188,6 @@ resource initDokku 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
     }
   }
 }
+
+output fqdn string = publicIPAddress.properties.dnsSettings.fqdn
+output vmPublicIPAddress string = publicIPAddress.properties.ipAddress
