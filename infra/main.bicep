@@ -27,6 +27,7 @@ param vmSize string = 'Standard_D2S_V3'
 ])
 param storageAccountType string = 'StandardSSD_LRS'
 
+// https://github.com/Azure/azure-docs-json-samples/blob/master/azure-resource-manager/linkedtemplates/readme.md
 // https://github.com/Azure/azure-quickstart-templates/blob/master/1-CONTRIBUTION-GUIDE/best-practices.md#deployment-artifacts-nested-templates-scripts
 @description('The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated.')
 param _artifactsLocation string = 'https://raw.githubusercontent.com/atrakic/azure-dokku-deployment/refs/heads/main/infra/main.bicep' //deployment().properties.templateLink.uri
