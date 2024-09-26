@@ -14,6 +14,7 @@ $dokku apps:create myapp
 #$dokku config:set myapp ROOT_URL=http://www.myapp.com
 #$dokku config:set myapp METEOR_SETTINGS='{"public": {"someSetting": "someValue"}}'
 #$dokku config:set myapp BUILDPACK_URL=
+#$dokku ps:rebuild myapp
 
 git remote -v | grep -w dokku &>/dev/null || git remote add dokku dokku@dokku:myapp
 git push dokku main
