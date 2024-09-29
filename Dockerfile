@@ -1,44 +1,63 @@
 #!/usr/bin/env -S bash -c "docker run -p 8080:8080 -it --rm \$(docker build --progress plain -f \$0 . 2>&1 | tee /dev/stderr | grep -oP 'sha256:[0-9a-f]*')"
 # syntax = docker/dockerfile:1.4.0
 
-## Orig from: https://gist.github.com/adtac/595b5823ef73b329167b815757bbce9f
-## https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md
+## Inspiration taken from: https://gist.github.com/adtac/595b5823ef73b329167b815757bbce9f
 
-FROM node:slim AS build-env
-WORKDIR /root
-RUN npm install sqlite3
+FROM debian:12-slim AS build
+RUN apt-get update && \
+  apt-get install --no-install-suggests --no-install-recommends --yes python3-venv gcc libpython3-dev libsqlite3-dev && \
+  python3 -m venv /venv && \
+  /venv/bin/pip install --upgrade pip setuptools wheel pysqlite3
 
-RUN <<EOF cat >/root/schema.sql
+FROM build AS build-venv
+WORKDIR /app
+RUN <<EOF cat > /app/server.py
+import sqlite3
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import time
+import json
+
+port = 8080
+
+# Initialize the in-memory SQLite database
+conn = sqlite3.connect(':memory:', check_same_thread=False)
+cursor = conn.cursor()
+cursor.execute('''
   CREATE TABLE IF NOT EXISTS clicks (
-    id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     time INTEGER NOT NULL
-  );
+  )
+''')
+
+# Read the HTML content
+with open('/app/index.html', 'r') as file:
+  html = file.read()
+
+  class RequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+      cursor.execute("INSERT INTO clicks(time) VALUES(?)", (int(time.time()),))
+      conn.commit()
+
+      cursor.execute('''
+      SELECT time as t, COUNT(*) as n
+      FROM clicks
+      WHERE t > strftime('%s', 'now') - 4*60*60
+      GROUP BY t - t % 60
+      ''')
+      data = [[int(row[0] // 60), row[1]] for row in cursor.fetchall()]
+
+      response = html.replace('__DATA__', json.dumps(data))
+      self.send_response(200)
+      self.send_header('Content-type', 'text/html')
+      self.end_headers()
+      self.wfile.write(response.encode('utf-8'))
+
+  server = HTTPServer(('', port), RequestHandler)
+  print(f"Listening on port {port}...")
+  server.serve_forever()
 EOF
 
-RUN <<EOF cat >/root/server.js
-  const port = 8080;
-  const fs = require("fs");
-  const http = require("http");
-  const sqlite3 = require("sqlite3");
-  const db = new sqlite3.Database(":memory:");
-  db.run(fs.readFileSync("/app/schema.sql", "utf8"));
-  const html = fs.readFileSync("/app/index.html", "utf8");
-  const server = http.createServer((req, res) => {
-    db.run("INSERT INTO clicks(time) VALUES(unixepoch())");
-    const data = [];
-    db.each(
-      "SELECT time as t, COUNT(*) as n FROM clicks WHERE t > unixepoch()-4*60*60 GROUP BY t-t%60",
-      (_, { t, n }) => data.push([Math.floor(t/60), n]),
-      () => {
-        res.writeHead(200, { "content-type": "text/html" });
-        res.end(html.replace("__DATA__", JSON.stringify(data)));
-      },
-    );
-  });
-  server.listen(port, () => console.log("Listening on port ${port}..."));
-EOF
-
-RUN <<EOF cat >/root/index.html
+RUN <<EOF cat >/app/index.html
 <!DOCTYPE html>
 <html>
   <head>
@@ -89,9 +108,12 @@ RUN <<EOF cat >/root/index.html
 EOF
 
 ## Final image
-FROM gcr.io/distroless/nodejs20-debian12 AS final
-COPY --from=build-env --chown=nonroot:nonroot /root /app
-ENV NODE_ENV=production
+FROM gcr.io/distroless/python3-debian12 AS final
+LABEL maintainer="Admir Trakic <atrakic@users.noreply.github.com>"
+COPY --from=build-venv /venv /venv
+COPY --from=build-venv --chown=nonroot:nonroot /app /app
 WORKDIR /app
 EXPOSE 8080
-CMD ["server.js"]
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD [ "/venv/bin/python3" , "-c", "import http.client; http.client.HTTPConnection('localhost', 8080).request('GET', '/')"]
+ENTRYPOINT ["/venv/bin/python3", "server.py"]
