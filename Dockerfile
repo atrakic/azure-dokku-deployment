@@ -12,46 +12,60 @@ RUN apt-get update && \
 FROM build AS build-venv
 WORKDIR /app
 RUN <<EOF cat > /app/server.py
-import sqlite3
-from http.server import BaseHTTPRequestHandler, HTTPServer
 import time
 import json
+import sqlite3
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 port = 8080
-
-# Initialize the in-memory SQLite database
-conn = sqlite3.connect(':memory:', check_same_thread=False)
+conn = sqlite3.connect(":memory:", check_same_thread=False)
 cursor = conn.cursor()
-cursor.execute('''
+cursor.execute(
+    """
   CREATE TABLE IF NOT EXISTS clicks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     time INTEGER NOT NULL
   )
-''')
+"""
+)
 
-# Read the HTML content
-with open('/app/index.html', 'r') as file:
-  html = file.read()
-
-  class RequestHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+class RequestHandler(BaseHTTPRequestHandler):
+  def do_GET(self):
+    if self.path == "/":
       cursor.execute("INSERT INTO clicks(time) VALUES(?)", (int(time.time()),))
       conn.commit()
-
-      cursor.execute('''
-      SELECT time as t, COUNT(*) as n
-      FROM clicks
-      WHERE t > strftime('%s', 'now') - 4*60*60
-      GROUP BY t - t % 60
-      ''')
+      cursor.execute(
+      """
+          SELECT time as t, COUNT(*) as n
+          FROM clicks
+          WHERE t > strftime('%s', 'now') - 4*60*60
+          GROUP BY t - t % 60
+          """
+      )
       data = [[int(row[0] // 60), row[1]] for row in cursor.fetchall()]
-
-      response = html.replace('__DATA__', json.dumps(data))
+      html = open('index.html', 'r').read()
+      response = html.replace("__DATA__", json.dumps(data))
       self.send_response(200)
-      self.send_header('Content-type', 'text/html')
+      self.send_header("Content-type", "text/html")
       self.end_headers()
-      self.wfile.write(response.encode('utf-8'))
+      try:
+        self.wfile.write(response.encode("utf-8"))
+      except BrokenPipeError:
+        pass
 
+    elif self.path == "/healthz":
+      cursor.execute("SELECT COUNT(*) FROM clicks")
+      data = {"clicks": cursor.fetchone()[0]}
+      response = json.dumps(data)
+      self.send_response(200)
+      self.send_header("Content-type", "application/json")
+      self.end_headers()
+      try:
+        self.wfile.write(response.encode("utf-8"))
+      except BrokenPipeError:
+        pass
+
+if __name__ == "__main__":
   server = HTTPServer(('', port), RequestHandler)
   print(f"Listening on port {port}...")
   server.serve_forever()
@@ -63,7 +77,7 @@ RUN <<EOF cat >/app/index.html
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>#!/usr/bin/env docker run</title>
+    <title>Counter</title>
   </head>
   <body style="font-family: monospace; font-size; 12px; ">
     <div style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background-size: 5vh 5vh; background-image: linear-gradient(to right, #f0f0f0 1px, transparent 1px), linear-gradient(to bottom, #f0f0f0 1px, transparent 1px); "></div>
@@ -110,10 +124,10 @@ EOF
 ## Final image
 FROM gcr.io/distroless/python3-debian12 AS final
 LABEL maintainer="Admir Trakic <atrakic@users.noreply.github.com>"
-COPY --from=build-venv /venv /venv
+COPY --from=build-venv --chown=nonroot:nonroot /venv /venv
 COPY --from=build-venv --chown=nonroot:nonroot /app /app
 WORKDIR /app
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD [ "/venv/bin/python3" , "-c", "import http.client; http.client.HTTPConnection('localhost', 8080).request('GET', '/')"]
+  CMD [ "/venv/bin/python3" , "-c", "import http.client; http.client.HTTPConnection('localhost', 8080).request('GET', '/healthz');"]
 ENTRYPOINT ["/venv/bin/python3", "server.py"]
