@@ -11,6 +11,7 @@ RUN apt-get update && \
 
 FROM build AS build-venv
 WORKDIR /app
+COPY VERSION ./
 RUN <<EOF cat > /app/server.py
 import time
 import json
@@ -56,6 +57,17 @@ class RequestHandler(BaseHTTPRequestHandler):
     elif self.path == "/healthz":
       cursor.execute("SELECT COUNT(*) FROM clicks")
       data = {"clicks": cursor.fetchone()[0]}
+      response = json.dumps(data)
+      self.send_response(200)
+      self.send_header("Content-type", "application/json")
+      self.end_headers()
+      try:
+        self.wfile.write(response.encode("utf-8"))
+      except BrokenPipeError:
+        pass
+
+    elif self.path == "/version":
+      data = {"version": open("VERSION", "r").read()}
       response = json.dumps(data)
       self.send_response(200)
       self.send_header("Content-type", "application/json")
