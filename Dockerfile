@@ -19,7 +19,8 @@ import sqlite3
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 port = 8080
-conn = sqlite3.connect(":memory:", check_same_thread=False)
+
+conn = sqlite3.connect("/var/db/clicks.db", check_same_thread=False)
 cursor = conn.cursor()
 cursor.execute(
     """
@@ -136,10 +137,15 @@ EOF
 ## Final image
 FROM gcr.io/distroless/python3-debian12 AS final
 LABEL maintainer="Admir Trakic <atrakic@users.noreply.github.com>"
+
 COPY --from=build-venv --chown=nonroot:nonroot /venv /venv
 COPY --from=build-venv --chown=nonroot:nonroot /app /app
+
 WORKDIR /app
+VOLUME /var/db
 EXPOSE 8080
+
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD [ "/venv/bin/python3" , "-c", "import http.client; http.client.HTTPConnection('localhost', 8080).request('GET', '/healthz');"]
+  CMD [ "/venv/bin/python3", "-c", "import http.client; http.client.HTTPConnection('localhost', 8080).request('GET', '/healthz');"]
+
 ENTRYPOINT ["/venv/bin/python3", "server.py"]

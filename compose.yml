@@ -3,5 +3,13 @@ services:
     build: .
     container_name: shebang
     image: shebang
+    volumes:
+      - ${PWD}/db:/var/db
     ports:
       - "8080:8080"
+
+volumes:
+  db:
+   driver_opts:
+      type: tmpfs
+      device: tmpfs
