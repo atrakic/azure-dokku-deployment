@@ -1,24 +1,27 @@
-#!/usr/bin/env -S bash -c "docker run -p 8080:8080 -it --rm \$(docker build --progress plain -f \$0 . 2>&1 | tee /dev/stderr | grep -oP 'sha256:[0-9a-f]*')"
-# syntax = docker/dockerfile:1.4.0
+# syntax=docker/dockerfile:1.4
+FROM --platform=$BUILDPLATFORM debian:12-slim AS build
+RUN apt-get update && \
+  apt-get install -qq --no-install-suggests --no-install-recommends --yes \
+    python3-venv gcc libpython3-dev libsqlite3-dev && \
+    python3 -m venv /venv && \
+    /venv/bin/pip install --upgrade pip setuptools wheel pysqlite3
 
 ## Inspiration taken from: https://gist.github.com/adtac/595b5823ef73b329167b815757bbce9f
-
-FROM debian:12-slim AS build
-RUN apt-get update && \
-  apt-get install --no-install-suggests --no-install-recommends --yes python3-venv gcc libpython3-dev libsqlite3-dev && \
-  python3 -m venv /venv && \
-  /venv/bin/pip install --upgrade pip setuptools wheel pysqlite3
-
 FROM build AS build-venv
 WORKDIR /app
+
 COPY VERSION ./
+
+ARG CLICKS_VERSION
+ENV CLICKS_VERSION=$CLICKS_VERSION
+RUN if [ -n "${CLICKS_VERSION}" ]; then echo "${CLICKS_VERSION}" > VERSION; fi
+
 RUN <<EOF cat > /app/server.py
 import time
 import json
+import argparse
 import sqlite3
 from http.server import BaseHTTPRequestHandler, HTTPServer
-
-port = 8080
 
 conn = sqlite3.connect("/var/db/clicks.db", check_same_thread=False)
 cursor = conn.cursor()
@@ -79,6 +82,9 @@ class RequestHandler(BaseHTTPRequestHandler):
         pass
 
 if __name__ == "__main__":
+  argparser = argparse.ArgumentParser()
+  argparser.add_argument("--port", type=int, default=8080)
+  port = argparser.parse_args().port
   server = HTTPServer(('', port), RequestHandler)
   print(f"Listening on port {port}...")
   server.serve_forever()
@@ -90,7 +96,7 @@ RUN <<EOF cat >/app/index.html
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Counter</title>
+    <title>Clicks</title>
   </head>
   <body style="font-family: monospace; font-size; 12px; ">
     <div style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background-size: 5vh 5vh; background-image: linear-gradient(to right, #f0f0f0 1px, transparent 1px), linear-gradient(to bottom, #f0f0f0 1px, transparent 1px); "></div>
@@ -143,9 +149,13 @@ COPY --from=build-venv --chown=nonroot:nonroot /app /app
 
 WORKDIR /app
 VOLUME /var/db
-EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD [ "/venv/bin/python3", "-c", "import http.client; http.client.HTTPConnection('localhost', 8080).request('GET', '/healthz');"]
+  CMD [ \
+    "/venv/bin/python3", \
+    "-c", \
+    "import http.client; http.client.HTTPConnection('localhost', 8080).request('GET', '/healthz');"]
+
+EXPOSE 8080
 
 ENTRYPOINT ["/venv/bin/python3", "server.py"]
