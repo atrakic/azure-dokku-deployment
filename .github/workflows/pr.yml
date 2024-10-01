@@ -3,12 +3,12 @@ name: 'pr'
 
 # yamllint disable-line rule:truthy
 on:
-  # onl run this workflow on pull request events
+  # only run this workflow on pull request events
   pull_request
 
 env:
-  appname: 'appname'
-  git_remote_url: 'ssh://dokku@dokku-foo.northeurope.cloudapp.azure.com:22/${{ env.appname }}'
+  appname: 'clicks'
+  git_remote_url: 'ssh://dokku@dokku-foo.northeurope.cloudapp.azure.com:22'
 
 jobs:
   review_app:
@@ -26,7 +26,7 @@ jobs:
         with:
           # create a review app
           command: review-apps:create
-          git_remote_url: ${{ env.git_remote_url }}
+          git_remote_url: ${{ env.git_remote_url }}/${{ env.appname }}
           # specify a name for the review app
           review_app_name: review-${{ env.appname }}-${{ github.event.pull_request.number }}
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -41,7 +41,7 @@ jobs:
         with:
           # destroy a review app
           command: review-apps:destroy
-          git_remote_url: ${{ env.git_remote_url }}
+          git_remote_url: ${{ env.git_remote_url }}/${{ env.appname }}
           # specify a name for the review app
           review_app_name: review-${{ env.appname }}-${{ github.event.pull_request.number }}
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}

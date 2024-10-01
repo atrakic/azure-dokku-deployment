@@ -19,7 +19,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/shebang
+  IMAGE_NAME: ${{ github.repository_owner }}/clicks
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
