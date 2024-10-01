@@ -25,6 +25,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 conn = sqlite3.connect("/var/db/clicks.db", check_same_thread=False)
 cursor = conn.cursor()
+cursor.execute("PRAGMA journal_mode = WAL")
+cursor.execute("PRAGMA synchronous = NORMAL")
+cursor.execute("PRAGMA temp_store = MEMORY")
 cursor.execute(
     """
   CREATE TABLE IF NOT EXISTS clicks (
