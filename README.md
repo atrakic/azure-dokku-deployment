@@ -1,4 +1,4 @@
-# azure-dokku-deployment
+# azure-dokku-template
 
 > Use this template to deploy your container to Azure Cloud with [DokKu](https://dokku.com/docs/deployment/application-deployment/).
 
