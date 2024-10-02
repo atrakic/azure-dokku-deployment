@@ -11,7 +11,6 @@
 ### Prerequisites
 - [Azure account](https://azure.microsoft.com/en-us/free/)
 - [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
-- [Docker](https://docs.docker.com/get-docker/)
 
 ### Local deployment
 
