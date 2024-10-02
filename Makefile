@@ -7,14 +7,12 @@ BASEDIR=$(shell git rev-parse --show-toplevel)
 all:
 	$(BASEDIR)/scripts/configure.sh
 	$(BASEDIR)/scripts/deploy.sh
-	$(BASEDIR)/scripts/backup.sh
-	$(BASEDIR)/scripts/test.sh
-
-restore update backup test deploy:
-	$(BASEDIR)/scripts/$@.sh
 
 infra:
 	pushd $(BASEDIR)/infra; make; popd
+
+restore update backup test deploy:
+	$(BASEDIR)/scripts/$@.sh
 
 clean:
 	$(BASEDIR)/scripts/clean.sh
