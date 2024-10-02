@@ -1,6 +1,6 @@
 # azure-dokku-template
 
-> Use this template to deploy your container to Azure Cloud with [DokKu](https://dokku.com/docs/deployment/application-deployment/).
+> Use this template to deploy your container of choice to Azure Cloud with [DokKu](https://dokku.com/docs/deployment/application-deployment/).
 
 ## Getting started
 
@@ -21,10 +21,12 @@ Create a GitHub repository based on this starter template (see the green "Use th
    git clone https://github.com/your-account/your-repo.git
    ```
 
-3. Create a infrastructure on Azure Cloud
+3. Edit the `Dockerfile` and `Makefile` to match your app
+
+
+4. Create a infrastructure on Azure Cloud
    ```make infra ```
 
-4. Edit the `Dockerfile` and `Makefile` to match your app
 
 5. Create a Docker container of the app
    ```make build ```
@@ -32,14 +34,12 @@ Create a GitHub repository based on this starter template (see the green "Use th
 6. Deploy the app to Dokku
    ```make ```
 
-7. Open the app in your browser
-
+7. Access your the in your browser
 
 ### GitHub Actions deployment
 
-1. Fork this repo
-2. Create a new secret in your forked repo with the name `SSH_PRIVATE_KEY` and add the value of your private SSH key. This key will be used to authenticate with the Dokku server.
-3. Push a change to your forked repo to trigger the GitHub Actions workflow
+1. Create a new secret in your forked repo with the name `SSH_PRIVATE_KEY` and add the value of your private SSH key. This key will be used to authenticate with the Dokku server.
+2. Push a change to trigger the GitHub Actions workflow
 
 ## License Information
 
