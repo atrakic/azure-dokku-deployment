@@ -1,6 +1,6 @@
 # azure-dokku-deployment
 
-> This repo demonstrates how to deploy a dockerized full stack application to Azure Cloud with [DokKu](https://dokku.com/docs/deployment/application-deployment/).
+> Use this template to deploy your container to Azure Cloud with [DokKu](https://dokku.com/docs/deployment/application-deployment/).
 
 ## Getting started
 
@@ -11,18 +11,28 @@
 
 ### Local deployment
 
-1. Clone the repo
+1. Use this repository as your GitOps template
+
+Create a GitHub repository based on this starter template (see the green "Use this template" button).
+
+
+2. Clone the repo
    ```sh
-   git clone https://github.com/atrakic/azure-dokku-deployment.git
+   git clone https://github.com/your-account/your-repo.git
    ```
 
-2. Create a infrastructure on Azure Cloud
+3. Create a infrastructure on Azure Cloud
    ```make infra ```
 
-3. Deploy the app to Dokku
+4. Edit the `Dockerfile` and `Makefile` to match your app
+
+5. Create a Docker container of the app
+   ```make build ```
+
+6. Deploy the app to Dokku
    ```make ```
 
-4. Open the app in your browser
+7. Open the app in your browser
 
 
 ### GitHub Actions deployment
