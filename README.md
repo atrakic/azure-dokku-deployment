@@ -44,7 +44,7 @@ Create a GitHub repository based on this starter template (see the green "Use th
 
 ## Example deployment
 
-- https://github.com/atrakic/clicks
+- https://github.com/atrakic/dokku-clicks
 
 
 ## License Information
