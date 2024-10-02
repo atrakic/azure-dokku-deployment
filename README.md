@@ -41,5 +41,11 @@ Create a GitHub repository based on this starter template (see the green "Use th
 1. Create a new secret in your new repo with the name `SSH_PRIVATE_KEY` and add the value of your private SSH key. This key will be used to authenticate with the Dokku server.
 2. Create new branch with your changes and create PR to trigger the GitHub Actions workflows.
 
+
+## Example deployment
+
+- https://github.com/atrakic/clicks
+
+
 ## License Information
 This project is licensed under the MIT License. View the [LICENSE](LICENSE) file for more details.
