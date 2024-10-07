@@ -3,6 +3,16 @@
 HERE=$(dirname $(readlink -f $0))
 source $HERE/env.sh
 
+if [ -z "$myapp" ]; then
+    echo ":: $(basename $0): Please set the myapp variable in env.sh ::"
+    exit 1
+fi
+
+if [ -z "$dokku" ]; then
+    echo ":: $(basename $0): Please set the dokku variable in env.sh ::"
+    exit 1
+fi
+
 echo ":: $(basename $0): Using dokku on $fqdn ($ip) ::"
 
 $dokku apps:create "$myapp"
